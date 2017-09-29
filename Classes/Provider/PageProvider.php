@@ -199,7 +199,8 @@ class PageProvider extends AbstractProvider implements ProviderInterface
      */
     public function getControllerActionReferenceFromRecord(array $row)
     {
-        if (true === empty($row[self::FIELD_ACTION_MAIN])) {
+        $useFluidpages = substr($row['backend_layout'], 0, 12) == 'fluidpages__';
+        if (true === empty($row[self::FIELD_ACTION_MAIN]) || false === $useFluidpages) {
             $row = $this->pageService->getPageTemplateConfiguration($row['uid']);
         }
         return $row[self::FIELD_ACTION_MAIN];

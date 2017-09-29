@@ -109,7 +109,7 @@ class PageService implements SingletonInterface
         if ($fromCache) {
             return $fromCache;
         }
-        $fieldList = 'tx_fed_page_controller_action_sub,t3ver_oid,pid,uid';
+        $fieldList = 'tx_fed_page_controller_action_sub,backend_layout,backend_layout_next_level,t3ver_oid,pid,uid';
         $page = $this->workspacesAwareRecordService->getSingle(
             'pages',
             'tx_fed_page_controller_action,' . $fieldList,
@@ -120,10 +120,13 @@ class PageService implements SingletonInterface
         // to fill values as they are detected.
         $resolvedMainTemplateIdentity = $page['tx_fed_page_controller_action'];
         $resolvedSubTemplateIdentity = $page['tx_fed_page_controller_action_sub'];
+        $checkTemplates = true;
+        $resolvedUseFluidpages = substr($page['backend_layout'], 0, 12) == 'fluidpages__';
+        $checkUseFluidpages = (false === $resolvedUseFluidpages);
         do {
             $containsSubDefinition = (false !== strpos($page['tx_fed_page_controller_action_sub'], '->'));
             $isCandidate = ((integer) $page['uid'] !== $pageUid);
-            if (true === $containsSubDefinition && true === $isCandidate) {
+            if (true == $checkTemplates && true === $containsSubDefinition && true === $isCandidate) {
                 $resolvedSubTemplateIdentity = $page['tx_fed_page_controller_action_sub'];
                 if (true === empty($resolvedMainTemplateIdentity)) {
                     // Conditions met: current page is not $pageUid, original page did not
@@ -131,6 +134,14 @@ class PageService implements SingletonInterface
                     // Then, set our "this page" value to use the "sub" selection that was detected.
                     $resolvedMainTemplateIdentity = $resolvedSubTemplateIdentity;
                 }
+                $checkTemplates = false;
+            }
+            $containsSubBackendLayout = !empty($page['backend_layout_next_level']);
+            if (true === $checkUseFluidpages && true === $isCandidate && true === $containsSubBackendLayout) {
+                $resolvedUseFluidpages = substr($page['backend_layout_next_level'], 0, 12) == 'fluidpages__';
+                $checkUseFluidpages = false;
+            }
+            if (false === $checkTemplates && false === $checkUseFluidpages) {
                 break;
             }
             // Note: 't3ver_oid' is analysed in order to make versioned records inherit the original record's
@@ -142,6 +153,11 @@ class PageService implements SingletonInterface
                 $resolveParentPageUid
             );
         } while (null !== $page);
+
+        if (false === $resolvedUseFluidpages) {
+            // No "fluidpages' backend layout was configured for this page
+            return null;
+        }
         if (true === empty($resolvedMainTemplateIdentity) && true === empty($resolvedSubTemplateIdentity)) {
             // Neither directly configured "this page" nor inherited "sub" contains a valid value;
             // no configuration was detected at all.

@@ -71,14 +71,96 @@ class PageServiceTest extends AbstractTestCase
      */
     public function getPageTemplateConfigurationTestValues()
     {
-        $m = 'tx_fed_page_controller_action';
-        $s = 'tx_fed_page_controller_action_sub';
-        return array(
-            array(array(array()), null),
-            array(array(array($m => '', $s => '')), null),
-            array(array(array($m => 'test1->test1', $s => 'test2->test2')), array($m => 'test1->test1', $s => 'test2->test2')),
-            array(array(array($m => ''), array($s => 'test2->test2')), array($m => 'test2->test2', $s => 'test2->test2'))
-        );
+        $b  = 'backend_layout';
+        $bs = 'backend_layout_next_level';
+        $a  = 'tx_fed_page_controller_action';
+        $as = 'tx_fed_page_controller_action_sub';
+        $bfp = 'fluidpages__fluidpages';
+        return [
+            'no data at all' => [
+                [[]],
+                null
+            ],
+            'empty actions' => [
+                [
+                    [$a => '', $as => '', $b => $bfp, $bs => $bfp]
+                ],
+                null
+            ],
+            'controller action on page itself' => [
+                [
+                    [$a => 'test1->test1', $as => 'test2->test2', $b => $bfp, $bs => $bfp]
+                ],
+                [$a => 'test1->test1', $as => 'test2->test2']
+            ],
+            'sub controller action on parent page' => [
+                [
+                    //pages are listed in reverse order, root level last
+                    [$a => '', $b => $bfp, $bs => $bfp],
+                    [$as => 'test2->test2', $b => $bfp, $bs => $bfp]
+                ],
+                [$a => 'test2->test2', $as => 'test2->test2']
+            ],
+            'no backend layout configured' => [
+                [
+                    [$a => 'test1->test1', $as => 'test2->test2', $b => '', $bs => ''],
+                ],
+                null
+            ],
+            'backend layout configured only for parent page' => [
+                [
+                    [$a => 'test1->test1', $as => 'test2->test2', $b => ''  , $bs => ''],
+                    [$a => 'test1->test1', $as => 'test2->test2', $b => $bfp, $bs => ''],
+                ],
+                null
+            ],
+            'backend layout configured on parent page' => [
+                [
+                    [$a => 'test1->test1', $as => 'test2->test2', $b => '', $bs => ''],
+                    [$a => 'test1->test1', $as => 'test2->test2', $b => '', $bs => $bfp],
+                ],
+                [$a => 'test1->test1', $as => 'test2->test2'],
+            ],
+            'backend layout configured on parent page #2' => [
+                [
+                    [$a => ''            , $as => ''            , $b => '', $bs => ''],
+                    [$a => 'test1->test1', $as => 'test2->test2', $b => '', $bs => $bfp],
+                ],
+                [$a => 'test2->test2', $as => 'test2->test2'],
+            ],
+            'different backend layout in between' => [
+                [
+                    [$a => ''            , $as => ''            , $b => '', $bs => ''],
+                    [$a => ''            , $as => ''            , $b => '', $bs => 'templavoila'],
+                    [$a => 'test1->test1', $as => 'test2->test2', $b => '', $bs => $bfp],
+                ],
+                null
+            ],
+            'self backend layout, but different backend layout in between' => [
+                [
+                    [$a => ''            , $as => ''            , $b => $bfp, $bs => ''],
+                    [$a => ''            , $as => ''            , $b => '', $bs => 'templavoila'],
+                    [$a => 'test1->test1', $as => 'test2->test2', $b => '', $bs => $bfp],
+                ],
+                [$a => 'test2->test2', $as => 'test2->test2']
+            ],
+            'action and backend layout on different levels: action higher' => [
+                [
+                    [$a => ''            , $as => ''            , $b => '', $bs => ''],
+                    [$a => ''            , $as => ''            , $b => '', $bs => $bfp],
+                    [$a => 'test1->test1', $as => 'test2->test2', $b => '', $bs => ''],
+                ],
+                [$a => 'test2->test2', $as => 'test2->test2']
+            ],
+            'action and backend layout on different levels: backend layout higher' => [
+                [
+                    [$a => ''            , $as => ''            , $b => '', $bs => ''],
+                    [$a => 'test1->test1', $as => 'test2->test2', $b => '', $bs => ''],
+                    [$a => ''            , $as => ''            , $b => '', $bs => $bfp],
+                ],
+                [$a => 'test2->test2', $as => 'test2->test2']
+            ],
+        ];
     }
 
     /**
